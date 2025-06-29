@@ -39,9 +39,9 @@ Variety of enemies and bosses: Red enemies fire homing shots, orange enemies unl
 
 ## 💻 実行方法 / How to Run
 
-1. **pygameのインストール / Install pygame**
+1. **pythonの実行 / Run python**
    ```bash
-   pip install pygame
+   python spaceship_shooting.py
 
 ---
 
