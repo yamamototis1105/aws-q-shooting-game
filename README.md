@@ -42,3 +42,9 @@ Variety of enemies and bosses: Red enemies fire homing shots, orange enemies unl
 1. **pygameのインストール / Install pygame**
    ```bash
    pip install pygame
+
+---
+
+## 📝 その他 / Etc
+
+このゲームの制作記録ブログはこちら → [Amazon Q CLIでシューティングゲーム作ってみた](https://community.aws/your-blog-url)
