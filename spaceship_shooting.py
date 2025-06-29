@@ -648,16 +648,61 @@ class Laser:
         pygame.draw.line(screen, WHITE, (int(start_x), int(start_y)), (int(end_x), int(end_y)), 8)
 
     def get_collision_rect(self):
+        # この関数は使用しないが、互換性のために残す
         current_time = pygame.time.get_ticks()
         start_x, start_y = self.get_current_start_position()
         end_x, end_y = self.get_current_end_position(current_time)
 
-        # レーザーの当たり判定用の矩形を返す
         min_x = min(start_x, end_x)
         max_x = max(start_x, end_x)
         min_y = min(start_y, end_y) - self.width // 2
         max_y = max(start_y, end_y) + self.width // 2
         return pygame.Rect(min_x, min_y, max_x - min_x, max_y - min_y)
+
+    def check_collision_with_point(self, point_x, point_y):
+        """点とレーザーの線との距離を計算して当たり判定を行う"""
+        current_time = pygame.time.get_ticks()
+        start_x, start_y = self.get_current_start_position()
+        end_x, end_y = self.get_current_end_position(current_time)
+
+        # レーザーの線分と点との最短距離を計算
+        # 線分の長さ
+        line_length_sq = (end_x - start_x) ** 2 + (end_y - start_y) ** 2
+
+        if line_length_sq == 0:
+            # 線分の長さが0の場合（開始点と終了点が同じ）
+            distance = math.sqrt((point_x - start_x) ** 2 + (point_y - start_y) ** 2)
+        else:
+            # 線分上の最も近い点を計算
+            t = max(0, min(1, ((point_x - start_x) * (end_x - start_x) +
+                              (point_y - start_y) * (end_y - start_y)) / line_length_sq))
+
+            # 線分上の最も近い点
+            closest_x = start_x + t * (end_x - start_x)
+            closest_y = start_y + t * (end_y - start_y)
+
+            # 点と線分上の最も近い点との距離
+            distance = math.sqrt((point_x - closest_x) ** 2 + (point_y - closest_y) ** 2)
+
+        # レーザーの幅の半分以下なら当たり
+        return distance <= self.width // 2
+
+    def check_collision_with_rect(self, rect):
+        """矩形とレーザーの当たり判定"""
+        # 矩形の4つの角と中心点をチェック
+        points_to_check = [
+            (rect.left, rect.top),      # 左上
+            (rect.right, rect.top),     # 右上
+            (rect.left, rect.bottom),   # 左下
+            (rect.right, rect.bottom),  # 右下
+            (rect.centerx, rect.centery) # 中心
+        ]
+
+        for px, py in points_to_check:
+            if self.check_collision_with_point(px, py):
+                return True
+
+        return False
 
 class BossBit:
     def __init__(self, boss_ref, position_offset_y, bit_id, position_type="side"):
@@ -1319,7 +1364,7 @@ def run_game():
 
                 # プレイヤーとボスのレーザーの衝突
                 for laser in boss.get_lasers():
-                    if player_rect.colliderect(laser.get_collision_rect()):
+                    if laser.check_collision_with_rect(player_rect):
                         game_state = "game_over"
                         break
 
