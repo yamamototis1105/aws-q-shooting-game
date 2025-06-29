@@ -47,4 +47,4 @@ Variety of enemies and bosses: Red enemies fire homing shots, orange enemies unl
 
 ## 📝 その他 / Etc
 
-このゲームの制作記録ブログはこちら → [Amazon Q CLIでシューティングゲーム作ってみた](https://community.aws/your-blog-url)
+このゲームの制作記録ブログはこちら → [Amazon Q CLIでシューティングゲーム作ってみた](https://yamamototis1105.hatenablog.com/entry/2025/06/29/222054)
