@@ -255,11 +255,11 @@ class EnemyFormation:
 
 class Boss:
     def __init__(self):
-        self.base_x = SCREEN_WIDTH - 100
+        self.base_x = SCREEN_WIDTH - 150  # より左に配置（サイズが大きくなったため）
         self.x = self.base_x
         self.y = SCREEN_HEIGHT // 2
-        self.width = 80
-        self.height = 60
+        self.width = 160  # 2倍に拡大（80 → 160）
+        self.height = 240  # 4倍に拡大（60 → 240）
         self.speed = 3
         self.bullets = []
         self.last_shot = 0
@@ -278,17 +278,19 @@ class Boss:
         self.laser_travel_time = 500  # 0.5秒でレーザーが左端に到達
         self.current_rotation_direction = 1  # 回転方向（1: 時計回り, -1: 反時計回り）
 
-        # ビット（サポートユニット）をより上下に離す
+        # ビット（サポートユニット）を4つに増加（左右 + 上下）
         self.bits = [
-            BossBit(self, -80, 0),  # 上のビット（-50から-80に）
-            BossBit(self, 80, 1)    # 下のビット（50から80に）
+            BossBit(self, -180, 0),  # 左上のビット（サイズに合わせて拡大）
+            BossBit(self, 180, 1),   # 左下のビット（サイズに合わせて拡大）
+            BossBit(self, 0, 2, position_type="top"),     # 上のビット（新規追加）
+            BossBit(self, 0, 3, position_type="bottom")   # 下のビット（新規追加）
         ]
 
     def update(self):
-        # ゆっくりとした八の字の動き + 前後の動き
+        # ゆっくりとした八の字の動き + 前後の動き（上下の振幅を2倍に）
         self.time += 0.03  # 0.05から0.03にさらに減速
-        self.y = self.center_y + math.sin(self.time) * 60  # 振幅も小さく
-        self.x = self.base_x + math.cos(self.time * 0.5) * 20  # 前後の動きも小さく
+        self.y = self.center_y + math.sin(self.time) * 120  # 振幅を2倍に（60 → 120）
+        self.x = self.base_x + math.cos(self.time * 0.5) * 20  # 前後の動きはそのまま
 
         # 通常の弾を撃つ（頻度を減らし、8方向に増やす）
         current_time = pygame.time.get_ticks()
@@ -336,146 +338,181 @@ class Boss:
             bit.update()
 
     def draw(self, screen):
-        # ボスをより迫力のある大型宇宙戦艦として描画
+        # 円形大型戦艦として描画（縦4倍サイズ、白縁なし）
         boss_x = int(self.x)
         boss_y = int(self.y)
+        center_x = boss_x + self.width // 2
+        center_y = boss_y + self.height // 2
 
-        # メインハル（流線型の楕円）
-        main_hull = pygame.Rect(boss_x + 15, boss_y + 25, self.width - 30, self.height - 50)
-        pygame.draw.ellipse(screen, (120, 0, 120), main_hull)
-        pygame.draw.ellipse(screen, (180, 0, 180), main_hull, 3)
+        # メインハル（大きな楕円形）- 基本構造（縦長に調整）
+        main_radius_x = self.width // 2 - 10
+        main_radius_y = self.height // 2 - 10
 
-        # 前部装甲（尖った楕円）
-        front_armor = pygame.Rect(boss_x + 50, boss_y + 30, 35, self.height - 60)
-        pygame.draw.ellipse(screen, PURPLE, front_armor)
-        pygame.draw.ellipse(screen, WHITE, front_armor, 2)
+        # メイン楕円ボディ（灰色ベース）
+        main_ellipse = pygame.Rect(center_x - main_radius_x, center_y - main_radius_y,
+                                  main_radius_x * 2, main_radius_y * 2)
+        pygame.draw.ellipse(screen, (70, 70, 70), main_ellipse)  # ダークグレー
 
-        # 先端部（鋭い三角形）
-        nose_points = [
-            (boss_x + self.width, boss_y + self.height // 2),  # 先端
-            (boss_x + self.width - 15, boss_y + self.height // 2 - 8),  # 上
-            (boss_x + self.width - 15, boss_y + self.height // 2 + 8)   # 下
+        # 内部構造リング（楕円形の同心円）- 灰色濃淡
+        for i in range(4):
+            ring_radius_x = main_radius_x - 15 - (i * 10)
+            ring_radius_y = main_radius_y - 15 - (i * 10)
+            if ring_radius_x > 0 and ring_radius_y > 0:
+                ring_color = [(90, 90, 90), (110, 110, 110), (130, 130, 130), (150, 150, 150)][i]  # 灰色グラデーション
+                ring_ellipse = pygame.Rect(center_x - ring_radius_x, center_y - ring_radius_y,
+                                         ring_radius_x * 2, ring_radius_y * 2)
+                pygame.draw.ellipse(screen, ring_color, ring_ellipse, 2)
+
+        # 前方突出部 - ミディアムグレー
+        front_extension_points = [
+            (center_x + main_radius_x - 10, center_y),
+            (center_x + main_radius_x + 30, center_y - 20),
+            (center_x + main_radius_x + 40, center_y),
+            (center_x + main_radius_x + 30, center_y + 20)
         ]
-        pygame.draw.polygon(screen, (200, 0, 200), nose_points)
-        pygame.draw.polygon(screen, WHITE, nose_points, 2)
+        pygame.draw.polygon(screen, (100, 100, 100), front_extension_points)
 
-        # 上部メインウィング（大幅に拡張）
-        upper_wing_main = [
-            (boss_x, boss_y - 10),                    # 最上部
-            (boss_x + 75, boss_y + 5),                # 前方上部
-            (boss_x + 80, boss_y + 20),               # 前方中部
-            (boss_x + 60, boss_y + 25),               # 中央上部
-            (boss_x + 30, boss_y + 30),               # 後方上部
-            (boss_x + 10, boss_y + 20),               # 後方接続部
-            (boss_x + 5, boss_y + 10)                 # 後方最上部
+        # 上部セクション（非対称な突出部）- ライトグレー
+        upper_section_points = [
+            (center_x - 30, center_y - main_radius_y + 20),
+            (center_x + 40, center_y - main_radius_y - 10),
+            (center_x + 50, center_y - main_radius_y + 30),
+            (center_x + 15, center_y - main_radius_y + 50),
+            (center_x - 20, center_y - main_radius_y + 40)
         ]
-        pygame.draw.polygon(screen, (100, 0, 100), upper_wing_main)
-        pygame.draw.polygon(screen, WHITE, upper_wing_main, 2)
+        pygame.draw.polygon(screen, (120, 120, 120), upper_section_points)
 
-        # 下部メインウィング（大幅に拡張）
-        lower_wing_main = [
-            (boss_x, boss_y + self.height + 10),      # 最下部
-            (boss_x + 75, boss_y + self.height - 5),  # 前方下部
-            (boss_x + 80, boss_y + self.height - 20), # 前方中部
-            (boss_x + 60, boss_y + self.height - 25), # 中央下部
-            (boss_x + 30, boss_y + self.height - 30), # 後方下部
-            (boss_x + 10, boss_y + self.height - 20), # 後方接続部
-            (boss_x + 5, boss_y + self.height - 10)   # 後方最下部
+        # 下部セクション（非対称な突出部）- ライトグレー
+        lower_section_points = [
+            (center_x - 35, center_y + main_radius_y - 20),
+            (center_x + 35, center_y + main_radius_y + 10),
+            (center_x + 45, center_y + main_radius_y - 30),
+            (center_x + 10, center_y + main_radius_y - 50),
+            (center_x - 25, center_y + main_radius_y - 40)
         ]
-        pygame.draw.polygon(screen, (100, 0, 100), lower_wing_main)
-        pygame.draw.polygon(screen, WHITE, lower_wing_main, 2)
+        pygame.draw.polygon(screen, (120, 120, 120), lower_section_points)
 
-        # 上部サブウィング（より大きく）
-        upper_sub_wing = [
-            (boss_x + 15, boss_y - 5),
-            (boss_x + 55, boss_y + 8),
-            (boss_x + 50, boss_y + 18),
-            (boss_x + 25, boss_y + 15)
+        # 左側の大型突出部 - ダークグレー
+        left_extension_points = [
+            (center_x - main_radius_x + 10, center_y - 40),
+            (center_x - main_radius_x - 35, center_y - 30),
+            (center_x - main_radius_x - 45, center_y),
+            (center_x - main_radius_x - 35, center_y + 30),
+            (center_x - main_radius_x + 10, center_y + 40)
         ]
-        pygame.draw.polygon(screen, (80, 0, 80), upper_sub_wing)
-        pygame.draw.polygon(screen, WHITE, upper_sub_wing, 1)
+        pygame.draw.polygon(screen, (80, 80, 80), left_extension_points)
 
-        # 下部サブウィング（より大きく）
-        lower_sub_wing = [
-            (boss_x + 15, boss_y + self.height + 5),
-            (boss_x + 55, boss_y + self.height - 8),
-            (boss_x + 50, boss_y + self.height - 18),
-            (boss_x + 25, boss_y + self.height - 15)
+        # 右側の小型突出部 - ミディアムグレー
+        right_extension_points = [
+            (center_x + main_radius_x - 10, center_y - 25),
+            (center_x + main_radius_x + 20, center_y - 15),
+            (center_x + main_radius_x + 30, center_y),
+            (center_x + main_radius_x + 20, center_y + 15),
+            (center_x + main_radius_x - 10, center_y + 25)
         ]
-        pygame.draw.polygon(screen, (80, 0, 80), lower_sub_wing)
-        pygame.draw.polygon(screen, WHITE, lower_sub_wing, 1)
+        pygame.draw.polygon(screen, (110, 110, 110), right_extension_points)
 
-        # ウィング先端装飾（上部）
-        wing_tip_upper = [
-            (boss_x + 75, boss_y + 5),
-            (boss_x + 85, boss_y + 8),
-            (boss_x + 82, boss_y + 15),
-            (boss_x + 78, boss_y + 12)
+        # 中央コックピット/ブリッジ（楕円形）- 明るいグレー
+        bridge_radius_x = 30
+        bridge_radius_y = 20
+        bridge_ellipse = pygame.Rect(center_x - bridge_radius_x, center_y - bridge_radius_y,
+                                   bridge_radius_x * 2, bridge_radius_y * 2)
+        pygame.draw.ellipse(screen, (140, 140, 140), bridge_ellipse)
+
+        # ブリッジ窓（複数）
+        window_positions = [
+            (center_x, center_y - 10),
+            (center_x - 15, center_y + 5),
+            (center_x + 15, center_y + 5)
         ]
-        pygame.draw.polygon(screen, (150, 0, 150), wing_tip_upper)
-        pygame.draw.polygon(screen, WHITE, wing_tip_upper, 1)
+        for wx, wy in window_positions:
+            pygame.draw.circle(screen, (200, 220, 255), (wx, wy), 6)
 
-        # ウィング先端装飾（下部）
-        wing_tip_lower = [
-            (boss_x + 75, boss_y + self.height - 5),
-            (boss_x + 85, boss_y + self.height - 8),
-            (boss_x + 82, boss_y + self.height - 15),
-            (boss_x + 78, boss_y + self.height - 12)
+        # 武器システム（複数の砲塔）- 縦長に対応して配置を調整
+        weapon_positions = [
+            (center_x + 40, center_y - 60),   # 右上
+            (center_x + 40, center_y + 60),   # 右下
+            (center_x - 40, center_y - 60),   # 左上
+            (center_x - 40, center_y + 60),   # 左下
+            (center_x, center_y - 80),        # 上
+            (center_x, center_y + 80),        # 下
+            (center_x + 20, center_y - 100),  # 右上遠
+            (center_x - 20, center_y + 100),  # 左下遠
         ]
-        pygame.draw.polygon(screen, (150, 0, 150), wing_tip_lower)
-        pygame.draw.polygon(screen, WHITE, wing_tip_lower, 1)
 
-        # ウィング装甲ライン
-        pygame.draw.line(screen, WHITE, (boss_x + 20, boss_y + 15), (boss_x + 70, boss_y + 15), 2)
-        pygame.draw.line(screen, WHITE, (boss_x + 20, boss_y + self.height - 15), (boss_x + 70, boss_y + self.height - 15), 2)
-        pygame.draw.line(screen, (150, 150, 150), (boss_x + 25, boss_y + 10), (boss_x + 65, boss_y + 10), 1)
-        pygame.draw.line(screen, (150, 150, 150), (boss_x + 25, boss_y + self.height - 10), (boss_x + 65, boss_y + self.height - 10), 1)
+        for wx, wy in weapon_positions:
+            # 砲塔ベース - ダークグレー
+            pygame.draw.circle(screen, (60, 60, 60), (wx, wy), 8)
+            # 砲身
+            pygame.draw.circle(screen, RED, (wx, wy), 4)
+            pygame.draw.circle(screen, YELLOW, (wx, wy), 2)
 
-        # メインエンジン（後部中央・より大きく）
-        main_engine_rect = pygame.Rect(boss_x - 5, boss_y + self.height // 2 - 10, 25, 20)
-        pygame.draw.ellipse(screen, RED, main_engine_rect)
-        pygame.draw.ellipse(screen, YELLOW, (boss_x - 2, boss_y + self.height // 2 - 7, 19, 14))
-        pygame.draw.ellipse(screen, WHITE, (boss_x + 1, boss_y + self.height // 2 - 4, 13, 8))
+        # メインレーザー発射口（前方突出部に）
+        main_laser_x = center_x + main_radius_x + 35
+        main_laser_y = center_y
+        pygame.draw.circle(screen, RED, (main_laser_x, main_laser_y), 12)
+        pygame.draw.circle(screen, YELLOW, (main_laser_x, main_laser_y), 8)
+        pygame.draw.circle(screen, WHITE, (main_laser_x, main_laser_y), 4)
 
-        # ウィングエンジン（上下のウィングに）
-        wing_engine_size = 8
-        # 上部ウィングエンジン
-        pygame.draw.circle(screen, RED, (boss_x + 5, boss_y + 12), wing_engine_size)
-        pygame.draw.circle(screen, YELLOW, (boss_x + 5, boss_y + 12), wing_engine_size - 2)
-        pygame.draw.circle(screen, WHITE, (boss_x + 5, boss_y + 12), wing_engine_size - 5)
-
-        # 下部ウィングエンジン
-        pygame.draw.circle(screen, RED, (boss_x + 5, boss_y + self.height - 12), wing_engine_size)
-        pygame.draw.circle(screen, YELLOW, (boss_x + 5, boss_y + self.height - 12), wing_engine_size - 2)
-        pygame.draw.circle(screen, WHITE, (boss_x + 5, boss_y + self.height - 12), wing_engine_size - 5)
-
-        # ブリッジ（司令塔・より大きく）
-        bridge_rect = pygame.Rect(boss_x + 25, boss_y + self.height // 2 - 15, 30, 30)
-        pygame.draw.ellipse(screen, (150, 150, 255), bridge_rect)
-        pygame.draw.ellipse(screen, WHITE, bridge_rect, 2)
-
-        # ブリッジ窓（より大きく）
-        window_rect = pygame.Rect(boss_x + 30, boss_y + self.height // 2 - 8, 20, 16)
-        pygame.draw.ellipse(screen, (200, 200, 255), window_rect)
-        pygame.draw.ellipse(screen, WHITE, window_rect, 1)
-
-        # 装甲プレート（詳細・より多く）
-        pygame.draw.line(screen, WHITE, (boss_x + 20, boss_y + 25), (boss_x + 65, boss_y + 25), 2)
-        pygame.draw.line(screen, WHITE, (boss_x + 20, boss_y + self.height - 25), (boss_x + 65, boss_y + self.height - 25), 2)
-        pygame.draw.line(screen, WHITE, (boss_x + 25, boss_y + 35), (boss_x + 60, boss_y + 35), 1)
-        pygame.draw.line(screen, WHITE, (boss_x + 25, boss_y + self.height - 35), (boss_x + 60, boss_y + self.height - 35), 1)
-
-        # レーザー発射口（複数・より目立つ）
-        laser_ports = [
-            (boss_x + self.width - 3, boss_y + self.height // 2),      # メイン
-            (boss_x + self.width - 8, boss_y + self.height // 2 - 12), # 上
-            (boss_x + self.width - 8, boss_y + self.height // 2 + 12)  # 下
+        # エンジン（後部に複数）- 縦長に対応して配置を調整
+        engine_positions = [
+            (center_x - main_radius_x - 25, center_y),        # メインエンジン
+            (center_x - main_radius_x + 15, center_y - 40),   # 上部エンジン
+            (center_x - main_radius_x + 15, center_y + 40),   # 下部エンジン
+            (center_x - main_radius_x - 10, center_y - 20),   # 補助エンジン1
+            (center_x - main_radius_x - 10, center_y + 20),   # 補助エンジン2
+            (center_x - main_radius_x + 5, center_y - 60),    # 上部補助
+            (center_x - main_radius_x + 5, center_y + 60),    # 下部補助
         ]
-        for port_x, port_y in laser_ports:
-            pygame.draw.circle(screen, RED, (port_x, port_y), 5)
-            pygame.draw.circle(screen, WHITE, (port_x, port_y), 5, 1)
-            pygame.draw.circle(screen, YELLOW, (port_x, port_y), 3)
-            pygame.draw.circle(screen, WHITE, (port_x, port_y), 1)
+
+        engine_sizes = [18, 12, 12, 10, 10, 8, 8]
+        for i, (ex, ey) in enumerate(engine_positions):
+            size = engine_sizes[i]
+            # エンジン炎エフェクト
+            pygame.draw.circle(screen, RED, (ex, ey), size)
+            pygame.draw.circle(screen, YELLOW, (ex, ey), size - 4)
+            pygame.draw.circle(screen, WHITE, (ex, ey), size - 8)
+
+        # 装甲プレート（詳細なライン）- 縦長に対応
+        # 放射状のライン
+        for angle in range(0, 360, 20):
+            start_radius = min(main_radius_x, main_radius_y) - 40
+            end_radius = min(main_radius_x, main_radius_y) - 20
+            start_x = center_x + start_radius * math.cos(math.radians(angle))
+            start_y = center_y + start_radius * math.sin(math.radians(angle))
+            end_x = center_x + end_radius * math.cos(math.radians(angle))
+            end_y = center_y + end_radius * math.sin(math.radians(angle))
+            pygame.draw.line(screen, (120, 120, 120), (start_x, start_y), (end_x, end_y), 1)
+
+        # 格子状の装甲ライン - 灰色
+        for i in range(-3, 4):
+            # 縦線
+            line_x = center_x + i * 25
+            pygame.draw.line(screen, (100, 100, 100),
+                           (line_x, center_y - main_radius_y + 30),
+                           (line_x, center_y + main_radius_y - 30), 1)
+
+        for i in range(-6, 7):
+            # 横線（縦長に対応して増加）
+            line_y = center_y + i * 20
+            pygame.draw.line(screen, (100, 100, 100),
+                           (center_x - main_radius_x + 30, line_y),
+                           (center_x + main_radius_x - 30, line_y), 1)
+
+        # 通信アンテナ/センサー（小さな突起）- 灰色
+        antenna_positions = [
+            (center_x + 20, center_y - 70),
+            (center_x - 25, center_y - 80),
+            (center_x + 30, center_y + 40),
+            (center_x - 20, center_y + 70),
+            (center_x, center_y - 100),
+            (center_x, center_y + 100)
+        ]
+
+        for ax, ay in antenna_positions:
+            pygame.draw.circle(screen, (130, 130, 130), (ax, ay), 3)
+            # アンテナの線
+            pygame.draw.line(screen, (110, 110, 110), (ax, ay), (ax + 5, ay - 8), 1)
 
         # 体力バーを描画
         bar_width = 200
@@ -492,7 +529,7 @@ class Boss:
         pygame.draw.rect(screen, WHITE, (bar_x, bar_y, bar_width, bar_height), 2)
 
         # ボス名表示
-        boss_name_text = game_font.render("BOSS: Galactic Destroyer", True, WHITE)
+        boss_name_text = game_font.render("BOSS: Millennium Destroyer", True, WHITE)
         screen.blit(boss_name_text, (bar_x, bar_y - 25))
 
         # 弾を描画
@@ -623,10 +660,11 @@ class Laser:
         return pygame.Rect(min_x, min_y, max_x - min_x, max_y - min_y)
 
 class BossBit:
-    def __init__(self, boss_ref, position_offset_y, bit_id):
+    def __init__(self, boss_ref, position_offset_y, bit_id, position_type="side"):
         self.boss_ref = boss_ref
         self.position_offset_y = position_offset_y  # ボスからの相対Y位置
         self.bit_id = bit_id
+        self.position_type = position_type  # "side", "top", "bottom"
         self.width = 35  # ビットを大きくする（20から35に）
         self.height = 25  # ビットを大きくする（15から25に）
         self.bullets = []
@@ -643,10 +681,10 @@ class BossBit:
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot > self.shot_delay:
             bit_x, bit_y = self.get_position()
-            # 複数方向に弾を撃つ
+            # 複数方向に弾を撃つ（速度を遅く）
             for angle in [-10, 0, 10]:  # 3方向に弾を撃つ
-                dx = -3 * math.cos(math.radians(angle))
-                dy = -3 * math.sin(math.radians(angle))
+                dx = -1.5 * math.cos(math.radians(angle))  # 速度を半分に（-3 → -1.5）
+                dy = -1.5 * math.sin(math.radians(angle))  # 速度を半分に（-3 → -1.5）
                 self.bullets.append(BossBullet(bit_x, bit_y, dx, dy))
             self.last_shot = current_time
 
@@ -654,14 +692,27 @@ class BossBit:
         self.bullets = [bullet for bullet in self.bullets if bullet.update()]
 
     def get_position(self):
-        # ボスの位置に基づいてビットの位置を計算（より離す）
-        base_x = self.boss_ref.x - 70  # ボスからより離す（-40から-70に）
-        base_y = self.boss_ref.y + self.boss_ref.height // 2 + self.position_offset_y
+        # ボスの位置に基づいてビットの位置を計算
+        if self.position_type == "side":
+            # 左右のビット（従来通り）
+            base_x = self.boss_ref.x - 100  # ボスからさらに離す
+            base_y = self.boss_ref.y + self.boss_ref.height // 2 + self.position_offset_y
+        elif self.position_type == "top":
+            # 上のビット
+            base_x = self.boss_ref.x + self.boss_ref.width // 2
+            base_y = self.boss_ref.y - 150  # ボスからかなり離す
+        elif self.position_type == "bottom":
+            # 下のビット
+            base_x = self.boss_ref.x + self.boss_ref.width // 2
+            base_y = self.boss_ref.y + self.boss_ref.height + 150  # ボスからかなり離す
 
         # 浮遊効果を追加
         float_offset = math.sin(self.float_time + self.bit_id) * self.float_amplitude
 
-        return base_x, base_y + float_offset
+        if self.position_type == "side":
+            return base_x, base_y + float_offset
+        else:  # top or bottom
+            return base_x + float_offset, base_y
 
     def draw(self, screen):
         bit_x, bit_y = self.get_position()
@@ -712,8 +763,9 @@ class BossBullet:
         self.y = y
         self.dx = dx
         self.dy = dy
-        self.width = 6
-        self.height = 6
+        self.width = 10  # サイズを大きく（6 → 10）
+        self.height = 10  # サイズを大きく（6 → 10）
+        self.radius = 5  # 描画用の半径も大きく（3 → 5）
 
     def update(self):
         self.x += self.dx
@@ -721,10 +773,13 @@ class BossBullet:
         return (0 <= self.x <= SCREEN_WIDTH and 0 <= self.y <= SCREEN_HEIGHT)
 
     def draw(self, screen):
-        pygame.draw.circle(screen, PURPLE, (int(self.x), int(self.y)), 3)
+        # ビットの弾を青緑色で大きく描画
+        pygame.draw.circle(screen, (0, 255, 200), (int(self.x), int(self.y)), self.radius)  # シアン系
+        pygame.draw.circle(screen, (100, 255, 255), (int(self.x), int(self.y)), self.radius - 2)  # 明るいシアン
+        pygame.draw.circle(screen, WHITE, (int(self.x), int(self.y)), self.radius - 4)  # 中心の白
 
     def get_rect(self):
-        return pygame.Rect(self.x - 3, self.y - 3, self.width, self.height)
+        return pygame.Rect(self.x - self.radius, self.y - self.radius, self.width, self.height)
 
 class Button:
     def __init__(self, x, y, width, height, text, color, hover_color):
