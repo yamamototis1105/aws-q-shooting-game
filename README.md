@@ -19,7 +19,7 @@ This side-scrolling shooter challenges players with a variety of enemy patterns 
 
 Variety of enemies and bosses: Red enemies fire homing shots, orange enemies unleash radial barrages, and the final boss overwhelms players with rotating lasers and floating bit units. As attack patterns evolve over time, the game demands keen observation and strategic maneuvering.
 
-<div style="text-align: center;"><img src="/images/title.png" width="320"><img src="/images/zako.png" width="320"><img src="/images/boss.png" width="320"></div>
+<div style="text-align: center;"><img src="/images/title.png" width="280">　<img src="/images/zako.png" width="280">　<img src="/images/boss.png" width="280"></div>
 
 ---
 
